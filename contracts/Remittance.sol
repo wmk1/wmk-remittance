@@ -1,10 +1,8 @@
 pragma solidity ^0.4.24;
 
-
 contract Remittance {
 
     address public owner;
-
     uint deadline = block.number + 1000;
 
     modifier onlyIfValidEther {
@@ -22,15 +20,22 @@ contract Remittance {
         _;
     }
 
+    //Function for  
     function kill() onlyIfOwner private {
         selfdestruct(owner);
+    }
+
+    //Fallback function
+    function() public { 
+        revert();
     }
 
     event LogEtherSended(uint _amount);
     event LogEtherConverted(uint _amount);
     event LogRemittanceCreated(address _recipient);
-    event LogPuzzleSolved(RemittanceStruct _remittance);
+    event LogPuzzleSolved(address _remittance);
     event LogEtherWithdrawal(uint _amount);
+    event LogKilled(address indexed _by);
 
     struct RemittanceStruct {
         uint balance;
@@ -45,12 +50,12 @@ contract Remittance {
 
     function solvePuzzle(string _puzzle) public returns (bool success) {
         RemittanceStruct storage remittance = remittances[msg.sender];
-        require(remittance.amount > 0);
+        require(remittance.balance > 0);
         require(encrypt(_puzzle, msg.sender) == remittance.puzzle);
-        uint amount = remittance.amount;
+        uint amount = remittance.balance; 
         delete remittances[msg.sender];
-        emit LogPuzzleSolve(remittance);
-        emit LogWithdrawal(remittance.owner, msg.sender, remittance.amount);
+        emit LogPuzzleSolved(remittance.owner);
+        emit LogEtherWithdrawal(amount);
         msg.sender.transfer(amount);
         return true;
     }
@@ -60,15 +65,17 @@ contract Remittance {
         require(_recipient > address(0x0));
         require(_password != bytes32(0));
 
-        RemittanceStruct memory remittance;
-        remittance.owner = msg.sender;
-        remittance.balance = msg.value;
-        remittance.puzzle = _password;
+        require(remittances[_recipient].puzzle == bytes32(0));
 
-        remittances[_recipient] = remittance;
+        RemittanceStruct memory remittanceStruct;
+
+        remittanceStruct.balance = msg.value;
+        remittanceStruct.owner = msg.sender;
+        remittanceStruct.puzzle = _password;
+
+        remittances[_recipient] = remittanceStruct;
         return true;
     }
-
 
     function encrypt(string _password, address _address) public pure returns (bytes32) {
         bytes32 result = keccak256(abi.encodePacked(_password, _address));
