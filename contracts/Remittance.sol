@@ -20,19 +20,17 @@ contract Remittance {
         _;
     }
 
-    //Function for  
-    function kill() public onlyIfOwner {
+    function kill() onlyIfOwner public {
         selfdestruct(owner);
     }
 
-    //Fallback function
     function() public { 
         revert();
     }
 
     event LogRemittanceCreated(address _recipient);
-    event LogPuzzleSolvedEtherWithdrawed(address _remittance, uint _amount);
-   
+    event LogPuzzleSolvedWithEtherWithdrawed(address _remittance, uint _amount);
+
     struct RemittanceStruct {
         uint balance;
         address owner;
@@ -42,22 +40,24 @@ contract Remittance {
     constructor() public payable {
         owner = msg.sender;
     }
+    
     mapping(address => RemittanceStruct) public remittances;
 
-    function solvePuzzle(string _password) public returns (bool success) {
+    function solvePuzzle(string _puzzle) public returns (bool success) {
         RemittanceStruct storage remittance = remittances[msg.sender];
         require(remittance.balance > 0);
-        require(hash(_password, msg.sender) == remittance.puzzle);
+        require(encrypt(_puzzle, msg.sender) == remittance.puzzle);
         uint amount = remittance.balance; 
         delete remittances[msg.sender];
-        emit LogPuzzleSolvedEtherWithdrawed(remittance.owner, amount);
+        emit LogPuzzleSolvedWithEtherWithdrawed(remittance.owner, amount);
         msg.sender.transfer(amount);
         return true;
     }
 
-    function createRemittance(address _recipient, bytes32 _password) public payable returns (bool success) {
-        require(_recipient > address(0x0));
+    function createRemittance(address _recipient, bytes32 _password) onlyIfValidEther public payable returns (bool success) {
+        require(_recipient > 0);
         require(_password != 0);
+
         require(remittances[_recipient].puzzle == bytes32(0));
 
         RemittanceStruct memory remittanceStruct;
@@ -71,7 +71,7 @@ contract Remittance {
         return true;
     }
 
-    function hash(string _password, address _address) public pure returns (bytes32) {
+    function encrypt(string _password, address _address) public pure returns (bytes32) {
         bytes32 result = keccak256(abi.encodePacked(_password, _address));
         return result;
     }

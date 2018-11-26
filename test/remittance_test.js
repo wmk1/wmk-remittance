@@ -6,12 +6,7 @@ const Remittance = artifacts.require("./Remittance.sol");
 
 Promise.promisifyAll(web3.eth,{suffix: "Promise"});
 
-/*
-For upcoming tests
-const password1 = "password";
-const password2 = "password1";
-const password3 = "password2";
-*/
+
 contract('Remittance', (accounts) => {
 
     let alice;
