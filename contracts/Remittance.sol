@@ -1,44 +1,30 @@
 pragma solidity ^0.4.24;
 
+
 contract Remittance {
 
     address public owner;
-    uint deadline = block.number + 1000;
-
-    modifier onlyIfValidEther {
-        require(msg.value > 0);
-        _;
-    }
-
-    modifier onlyIfOwner {
-        require(msg.sender == owner);
-        _;
-    }
-
-    modifier onlyIfDeadline {
-        require(deadline <= now);
-        _;
-    }
-
-    function kill() onlyIfOwner public {
-        selfdestruct(owner);
-    }
-
-    function() public { 
-        revert();
-    }
+    uint public deadline = block.number + 1000;
 
     event LogRemittanceCreated(address _recipient);
     event LogPuzzleSolvedWithEtherWithdrawed(address _remittance, uint _amount);
 
-    struct RemittanceStruct {
-        uint balance;
-        address owner;
-        bytes32 puzzle;
+    constructor() public {
+        owner = msg.sender;
     }
 
-    constructor() public payable {
-        owner = msg.sender;
+    function() public payable { 
+        revert();
+    }
+
+    function kill() public {
+        require(msg.sender == owner);
+        selfdestruct(owner);
+    }
+
+    struct RemittanceStruct {
+        uint balance;
+        bytes32 puzzle;
     }
     
     mapping(address => RemittanceStruct) public remittances;
@@ -49,12 +35,13 @@ contract Remittance {
         require(encrypt(_puzzle, msg.sender) == remittance.puzzle);
         uint amount = remittance.balance; 
         delete remittances[msg.sender];
-        emit LogPuzzleSolvedWithEtherWithdrawed(remittance.owner, amount);
+        emit LogPuzzleSolvedWithEtherWithdrawed(remittance, amount);
         msg.sender.transfer(amount);
         return true;
     }
 
-    function createRemittance(address _recipient, bytes32 _password) onlyIfValidEther public payable returns (bool success) {
+    function createRemittance(address _recipient, bytes32 _password) public payable returns (bool success) {
+        require(msg.value > 0);
         require(_recipient > 0);
         require(_password != 0);
 
@@ -63,7 +50,6 @@ contract Remittance {
         RemittanceStruct memory remittanceStruct;
 
         remittanceStruct.balance = msg.value;
-        remittanceStruct.owner = msg.sender;
         remittanceStruct.puzzle = _password;
 
         remittances[_recipient] = remittanceStruct;
@@ -75,5 +61,4 @@ contract Remittance {
         bytes32 result = keccak256(abi.encodePacked(_password, _address));
         return result;
     }
-
 }
