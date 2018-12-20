@@ -35,14 +35,14 @@ contract Remittance {
         require(encrypt(_puzzle, msg.sender) == remittance.puzzle);
         uint amount = remittance.balance; 
         delete remittances[msg.sender];
-        emit LogPuzzleSolvedWithEtherWithdrawed(remittance, amount);
+        emit LogPuzzleSolvedWithEtherWithdrawed(msg.sender, amount);
         msg.sender.transfer(amount);
         return true;
     }
 
     function createRemittance(address _recipient, bytes32 _password) public payable returns (bool success) {
         require(msg.value > 0);
-        require(_recipient > 0);
+        require(_recipient != 0x0);
         require(_password != 0);
 
         require(remittances[_recipient].puzzle == bytes32(0));
